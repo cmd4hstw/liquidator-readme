@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1900" viewBox="0 0 1600 1900" role="img" aria-labelledby="title desc">
+  <title id="title">Resident Off-Chain Projection Pipeline</title>
+  <desc id="desc">Diagram showing how the bot bootstraps local state, decodes sequencer feed messages, mutates resident data, recomputes health factor and gates runtime decisions.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f7f2e8"/>
+      <stop offset="100%" stop-color="#eef6f3"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#fbfcfa"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#355c54"/>
+    </marker>
+    <style>
+      .title { font: 700 40px Georgia, 'Times New Roman', serif; fill: #18332d; }
+      .subtitle { font: 400 19px 'Trebuchet MS', Verdana, sans-serif; fill: #355c54; }
+      .section { font: 700 24px Georgia, 'Times New Roman', serif; fill: #18332d; }
+      .box { fill: url(#panel); stroke: #2f5a52; stroke-width: 2.2; rx: 28; ry: 28; }
+      .box-accent { fill: #edf6f2; stroke: #2f5a52; stroke-width: 2.2; rx: 28; ry: 28; }
+      .box-warm { fill: #fff7eb; stroke: #a0672f; stroke-width: 2.2; rx: 28; ry: 28; }
+      .box-note { fill: #f5efe3; stroke: #8f6c43; stroke-width: 2; rx: 24; ry: 24; }
+      .label { font: 700 21px 'Trebuchet MS', Verdana, sans-serif; fill: #18332d; }
+      .small { font: 400 17px 'Trebuchet MS', Verdana, sans-serif; fill: #254741; }
+      .note { font: 400 16px 'Trebuchet MS', Verdana, sans-serif; fill: #5b4a34; }
+      .formula { font: 400 18px 'Courier New', monospace; fill: #1f3e38; }
+      .arrow { stroke: #355c54; stroke-width: 4; fill: none; marker-end: url(#arrow); stroke-linecap: round; stroke-linejoin: round; }
+      .divider { stroke: #d8e5df; stroke-width: 2; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="1900" fill="url(#bg)"/>
+
+  <text x="800" y="70" text-anchor="middle" class="title">Resident Off-Chain Projection Pipeline</text>
+  <text x="800" y="108" text-anchor="middle" class="subtitle">Sequencer feed events are projected on top of a bootstrapped local Aave state, then gated by confidence before the runner consumes them.</text>
+
+  <rect x="90" y="150" width="1420" height="250" class="box"/>
+  <text x="130" y="196" class="section">1. Bootstrap a real local baseline</text>
+  <text x="130" y="238" class="label">Aave RPC snapshot seeds the resident store</text>
+  <text x="130" y="274" class="small">Block and timestamp, reserve list, reserve configuration, indexes, rates, caps, flags, oracle prices, user account data, user reserve data, EMode.</text>
+  <text x="130" y="308" class="small">Balances are normalized into scaled balances so later local math can reuse the same Aave index mechanics.</text>
+  <text x="130" y="342" class="formula">scaledATokenBalance = currentATokenBalance / liquidityIndex</text>
+  <text x="130" y="372" class="formula">scaledVariableDebt = currentVariableDebt / variableBorrowIndex</text>
+
+  <rect x="130" y="470" width="610" height="250" class="box-accent"/>
+  <text x="170" y="516" class="section">2. Keep resident state in memory</text>
+  <text x="170" y="556" class="small">The per-user store keeps:</text>
+  <text x="170" y="592" class="small">blockState, reserveStates, priceStates, userReserveStates, userAccountStates, eModeCategories</text>
+  <text x="170" y="628" class="small">It also keeps drift, confidence, last feed seq, last block, and recent local decision metadata.</text>
+  <text x="170" y="664" class="small">This is the local baseline that future feed events mutate.</text>
+
+  <rect x="860" y="470" width="610" height="250" class="box-warm"/>
+  <text x="900" y="516" class="section">3. Decode the sequencer feed</text>
+  <text x="900" y="556" class="small">Each feed message becomes an advance-block event first.</text>
+  <text x="900" y="592" class="small">Then the L2 batch is expanded into transactions and mapped into engine events only when relevant for the tracked user.</text>
+  <text x="900" y="628" class="small">Supported today: pool calls, aToken transfers, supported direct price updates.</text>
+  <text x="900" y="664" class="small">Unsupported OCR transmit payloads are counted, but they do not mutate local prices yet.</text>
+
+  <path d="M800 400 L800 440" class="arrow"/>
+  <path d="M435 720 L435 780" class="arrow"/>
+  <path d="M1165 720 L1165 780" class="arrow"/>
+
+  <rect x="250" y="800" width="1100" height="250" class="box"/>
+  <text x="290" y="846" class="section">4. Advance time and mutate local state</text>
+  <text x="290" y="886" class="small">Before applying user actions, the engine advances reserve indexes to the feed timestamp.</text>
+  <text x="290" y="922" class="formula">liquidityIndex_t = accrueLinearIndex(liquidityIndex_0, liquidityRateRay, dt)</text>
+  <text x="290" y="954" class="formula">variableBorrowIndex_t = accrueBinomialCompoundedIndex(variableBorrowIndex_0, variableBorrowRateRay, dt)</text>
+  <text x="290" y="994" class="small">Then event mutators update scaled supply, scaled debt, collateral flags, EMode, reserve prices, and estimated liquidation effects.</text>
+  <text x="290" y="1030" class="small">Touched users are marked dirty and scheduled for local recomputation.</text>
+
+  <path d="M800 1050 L800 1110" class="arrow"/>
+
+  <rect x="90" y="1130" width="680" height="340" class="box-accent"/>
+  <text x="130" y="1176" class="section">5. Rebuild each position from scaled state</text>
+  <text x="130" y="1218" class="formula">supplyWei = scaledATokenBalance * liquidityIndex / RAY</text>
+  <text x="130" y="1250" class="formula">variableDebtWei = max(scaledVariableDebt * variableBorrowIndex / RAY, variableDebtMinWei)</text>
+  <text x="130" y="1282" class="formula">stableDebtWei = actualStableDebtWei or principalStableDebt</text>
+  <text x="130" y="1314" class="formula">collateralBase = supplyWei * priceBase / 10^decimals</text>
+  <text x="130" y="1346" class="formula">debtBase = totalDebtWei * priceBase / 10^decimals</text>
+  <text x="130" y="1378" class="formula">weightedCollateralBase = collateralBase * effectiveLtBps / 10000</text>
+  <text x="130" y="1420" class="small">EMode-aware liquidation threshold is applied when the reserve and user share the same category.</text>
+
+  <rect x="830" y="1130" width="680" height="340" class="box-warm"/>
+  <text x="870" y="1176" class="section">6. Aggregate account state and confidence</text>
+  <text x="870" y="1218" class="formula">totalCollateralBase = sum(collateralBase)</text>
+  <text x="870" y="1250" class="formula">totalDebtBase = sum(debtBase)</text>
+  <text x="870" y="1282" class="formula">healthFactor = weightedCollateralBase * 1e18 / totalDebtBase</text>
+  <text x="870" y="1324" class="small">If debt is zero, HF is promoted to MAX_HEALTH_FACTOR.</text>
+  <text x="870" y="1360" class="small">The current projectedHealthFactor is the locally recomputed HF at the latest known feed frontier.</text>
+  <text x="870" y="1396" class="small">Confidence is reduced by drift, stale data, complexity, stable debt, isolation mode, event gaps, or missing price.</text>
+  <text x="870" y="1432" class="small">That score decides whether the runner can trust the local state.</text>
+
+  <path d="M770 1300 L820 1300" class="arrow"/>
+  <path d="M1170 1470 L1170 1545" class="arrow"/>
+
+  <rect x="530" y="1545" width="540" height="160" class="box"/>
+  <text x="800" y="1600" text-anchor="middle" class="section">7. Runtime gate</text>
+  <text x="800" y="1640" text-anchor="middle" class="label">Confidence and freshness above the configured threshold?</text>
+  <text x="800" y="1676" text-anchor="middle" class="small">Main gates: RESIDENT_CONFIDENCE_THRESHOLD and RESIDENT_MIN_CONFIDENCE_BUILD_STATE</text>
+
+  <path d="M530 1625 L240 1625 L240 1780" class="arrow"/>
+  <path d="M1070 1625 L1360 1625 L1360 1780" class="arrow"/>
+
+  <rect x="90" y="1780" width="520" height="95" class="box-accent"/>
+  <text x="350" y="1838" text-anchor="middle" class="label">YES: resident-first monitoring and hybrid reads</text>
+  <text x="350" y="1866" text-anchor="middle" class="small">Critical and recheck can read local decisions without monitoring RPC.</text>
+
+  <rect x="990" y="1780" width="520" height="95" class="box-warm"/>
+  <text x="1250" y="1838" text-anchor="middle" class="label">NO: defer or use RPC fallback where still allowed</text>
+  <text x="1250" y="1866" text-anchor="middle" class="small">Execution paths still keep RPC for canonical validation, quotes, submit, and receipt.</text>
+
+  <rect x="90" y="1495" width="420" height="150" class="box-note"/>
+  <text x="120" y="1540" class="section">Current runtime policy</text>
+  <text x="120" y="1576" class="note">Sequencer feed updates resident state,</text>
+  <text x="120" y="1606" class="note">but does not trigger extra fast scan,</text>
+  <text x="120" y="1636" class="note">recheck, or oracle RPC loops.</text>
+</svg>

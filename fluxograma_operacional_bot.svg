@@ -1,0 +1,230 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='2000' height='5600' viewBox='0 0 2000 5600' role='img' aria-labelledby='title desc'>
+  <title id='title'>Operational flow of the liquidation bot</title>
+  <desc id='desc'>Static flowchart that documents boot mode selection, full and backup bootstrap, snapshot persistence, deep scan delta refresh, 30 second fast scan route refresh, resident-first recheck over the fast list, and cascade or single execution.</desc>
+  <defs>
+    <pattern id='grid' width='80' height='80' patternUnits='userSpaceOnUse'>
+      <path d='M 80 0 L 0 0 0 80' fill='none' stroke='#dbe7f3' stroke-width='1' />
+    </pattern>
+    <filter id='shadow' x='-20%' y='-20%' width='140%' height='140%'>
+      <feDropShadow dx='10' dy='12' stdDeviation='0' flood-color='#0f172a' flood-opacity='0.95' />
+    </filter>
+    <marker id='arrow' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='10' markerHeight='10' orient='auto-start-reverse'>
+      <path d='M 0 0 L 10 5 L 0 10 z' fill='#102a43' />
+    </marker>
+    <style>
+      .title { font: 700 42px Segoe UI, Arial, sans-serif; fill: #16324f; }
+      .subtitle { font: 600 24px Segoe UI, Arial, sans-serif; fill: #406882; }
+      .box { stroke: #102a43; stroke-width: 4; filter: url(#shadow); }
+      .startend { fill: #1d4ed8; }
+      .process { fill: #0f766e; }
+      .decision { fill: #b45309; }
+      .io { fill: #0284c7; }
+      .noteBox { fill: #fef3c7; stroke: #d97706; stroke-width: 3; }
+      .label { font: 700 28px Segoe UI, Arial, sans-serif; fill: #ffffff; }
+      .small { font: 700 22px Segoe UI, Arial, sans-serif; fill: #ffffff; }
+      .note { font: 600 20px Segoe UI, Arial, sans-serif; fill: #16324f; }
+      .arrow { fill: none; stroke: #102a43; stroke-width: 6; marker-end: url(#arrow); }
+      .thin { fill: none; stroke: #102a43; stroke-width: 5; marker-end: url(#arrow); }
+      .tag { font: 700 22px Segoe UI, Arial, sans-serif; fill: #16324f; }
+    </style>
+  </defs>
+
+  <rect width='2000' height='5600' fill='#f8fbff' />
+  <rect width='2000' height='5600' fill='url(#grid)' />
+
+  <text x='1000' y='52' text-anchor='middle' class='title'>Operational Flow Of The Bot</text>
+  <text x='1000' y='92' text-anchor='middle' class='subtitle'>Boot modes, backup restore, delta refresh, route planning, resident recheck, and cascade execution</text>
+
+  <rect x='850' y='130' width='300' height='80' rx='40' class='box startend' />
+  <text x='1000' y='181' text-anchor='middle' class='label'>Start</text>
+
+  <rect x='450' y='260' width='1100' height='120' rx='24' class='box process' />
+  <text x='1000' y='321' text-anchor='middle' class='label'>Load env and service overrides</text>
+  <text x='1000' y='356' text-anchor='middle' class='small'>initialize providers, contracts, caches, thresholds, and route config</text>
+
+  <rect x='450' y='440' width='1100' height='110' rx='24' class='box io' />
+  <text x='1000' y='501' text-anchor='middle' class='label'>Resolve bootstrap mode</text>
+  <text x='1000' y='536' text-anchor='middle' class='small'>auto tries backup first and falls back to full rebuild</text>
+
+  <polygon points='1000,620 1290,770 1000,920 710,770' class='box decision' />
+  <text x='1000' y='748' text-anchor='middle' class='label'>Snapshot valid and</text>
+  <text x='1000' y='784' text-anchor='middle' class='small'>backup allowed?</text>
+
+  <rect x='120' y='1010' width='700' height='110' rx='24' class='box io' />
+  <text x='470' y='1071' text-anchor='middle' class='label'>Full bootstrap</text>
+  <text x='470' y='1106' text-anchor='middle' class='small'>query open borrowers from the subgraph</text>
+
+  <rect x='120' y='1170' width='700' height='120' rx='24' class='box process' />
+  <text x='470' y='1231' text-anchor='middle' class='label'>Build hotlist and capped fast list</text>
+  <text x='470' y='1267' text-anchor='middle' class='small'>refresh account truth via RPC before scans start</text>
+
+  <rect x='120' y='1340' width='700' height='110' rx='24' class='box process' />
+  <text x='470' y='1406' text-anchor='middle' class='label'>Persist fresh snapshot</text>
+
+  <rect x='1180' y='1010' width='700' height='110' rx='24' class='box io' />
+  <text x='1530' y='1071' text-anchor='middle' class='label'>Backup bootstrap</text>
+  <text x='1530' y='1106' text-anchor='middle' class='small'>load out/bootstrap_snapshot.json</text>
+
+  <rect x='1180' y='1170' width='700' height='120' rx='24' class='box process' />
+  <text x='1530' y='1231' text-anchor='middle' class='label'>Apply subgraph delta</text>
+  <text x='1530' y='1267' text-anchor='middle' class='small'>refresh only touched users through RPC</text>
+
+  <rect x='1180' y='1340' width='700' height='110' rx='24' class='box process' />
+  <text x='1530' y='1406' text-anchor='middle' class='label'>Persist refreshed snapshot</text>
+
+  <rect x='450' y='1510' width='1100' height='120' rx='24' class='box process' />
+  <text x='1000' y='1571' text-anchor='middle' class='label'>Initial fast scan</text>
+  <text x='1000' y='1606' text-anchor='middle' class='small'>first qualification pass, ground truth, and plan warmup</text>
+
+  <rect x='450' y='1690' width='1100' height='120' rx='24' class='box process' />
+  <text x='1000' y='1751' text-anchor='middle' class='label'>Start sequencer feed watcher and enter active runtime</text>
+  <text x='1000' y='1786' text-anchor='middle' class='small'>boot is now closed and the hot path can run</text>
+
+  <rect x='60' y='1900' width='340' height='110' rx='20' class='box io' />
+  <text x='230' y='1961' text-anchor='middle' class='label'>Deep scan every 10 min</text>
+  <text x='230' y='1996' text-anchor='middle' class='small'>subgraph delta discovery</text>
+
+  <rect x='60' y='2060' width='340' height='150' rx='20' class='box process' />
+  <text x='230' y='2121' text-anchor='middle' class='label'>Prune hotlist and sync</text>
+  <text x='230' y='2157' text-anchor='middle' class='small'>refresh touched fast users</text>
+  <text x='230' y='2193' text-anchor='middle' class='small'>save snapshot again</text>
+
+  <rect x='450' y='1900' width='1100' height='130' rx='24' class='box process' />
+  <text x='1000' y='1961' text-anchor='middle' class='label'>Fast scan every 30 s in 200-user chunks</text>
+  <text x='1000' y='1996' text-anchor='middle' class='small'>RPC ground truth, qualification, route refresh, and prebuild</text>
+
+  <rect x='1600' y='1900' width='300' height='150' rx='20' class='noteBox' />
+  <text x='1750' y='1961' text-anchor='middle' class='note'>Critical timer disabled.</text>
+  <text x='1750' y='1994' text-anchor='middle' class='note'>Resident recheck is the</text>
+  <text x='1750' y='2027' text-anchor='middle' class='note'>low-latency monitoring path.</text>
+
+  <rect x='450' y='2080' width='1100' height='110' rx='24' class='box io' />
+  <text x='1000' y='2141' text-anchor='middle' class='label'>Bootstrap resident stores for new hot users</text>
+  <text x='1000' y='2176' text-anchor='middle' class='small'>or on-demand prebuild requests</text>
+
+  <rect x='450' y='2240' width='1100' height='130' rx='24' class='box process' />
+  <text x='1000' y='2301' text-anchor='middle' class='label'>Resident-first recheck queue over the full fast list</text>
+  <text x='1000' y='2337' text-anchor='middle' class='small'>warm users local, cold users deferred when RPC fallbacks stay off</text>
+
+  <rect x='520' y='2410' width='960' height='100' rx='18' class='noteBox' />
+  <text x='1000' y='2466' text-anchor='middle' class='note'>Sequencer-triggered cadence updates resident decisions without variable monitoring RPC.</text>
+
+  <polygon points='1000,2570 1280,2730 1000,2890 720,2730' class='box decision' />
+  <text x='1000' y='2710' text-anchor='middle' class='label'>What does the resident pass decide?</text>
+  <text x='1000' y='2746' text-anchor='middle' class='small'>recover, stay hot, or execute</text>
+
+  <rect x='450' y='2990' width='1100' height='110' rx='24' class='box process' />
+  <text x='1000' y='3056' text-anchor='middle' class='label'>Enter processLiquidation</text>
+
+  <rect x='450' y='3150' width='1100' height='110' rx='24' class='box process' />
+  <text x='1000' y='3216' text-anchor='middle' class='label'>Build user state and choose the pair</text>
+
+  <rect x='450' y='3310' width='1100' height='140' rx='24' class='box io' />
+  <text x='1000' y='3371' text-anchor='middle' class='label'>Detect best fee and path, support multi-hop</text>
+  <text x='1000' y='3407' text-anchor='middle' class='small'>check pool liquidity and size safe debtToCover</text>
+  <text x='1000' y='3443' text-anchor='middle' class='small'>apply stepdown 100 - 80 - 60 - 40 - 20 - 10</text>
+
+  <polygon points='1000,3510 1280,3670 1000,3830 720,3670' class='box decision' />
+  <text x='1000' y='3650' text-anchor='middle' class='label'>Is the live plan valid</text>
+  <text x='1000' y='3686' text-anchor='middle' class='small'>and profitable?</text>
+
+  <rect x='450' y='3890' width='1100' height='120' rx='24' class='box process' />
+  <text x='1000' y='3951' text-anchor='middle' class='label'>Find cascade candidates sharing the same debt asset</text>
+  <text x='1000' y='3986' text-anchor='middle' class='small'>build compatible plans or skip the batch path</text>
+
+  <polygon points='1000,4050 1280,4210 1000,4370 720,4210' class='box decision' />
+  <text x='1000' y='4190' text-anchor='middle' class='label'>Submit as a cascade</text>
+  <text x='1000' y='4226' text-anchor='middle' class='small'>or fall back to a single tx?</text>
+
+  <rect x='140' y='4440' width='700' height='120' rx='24' class='box process' />
+  <text x='490' y='4501' text-anchor='middle' class='label'>Submit single flash loan</text>
+
+  <rect x='1160' y='4440' width='700' height='120' rx='24' class='box process' />
+  <text x='1510' y='4501' text-anchor='middle' class='label'>Build cascade plans and</text>
+  <text x='1510' y='4537' text-anchor='middle' class='small'>submit cascade flash loan</text>
+
+  <rect x='450' y='4620' width='1100' height='110' rx='24' class='box io' />
+  <text x='1000' y='4681' text-anchor='middle' class='label'>Read receipt, parse post-state, and reclassify</text>
+  <text x='1000' y='4716' text-anchor='middle' class='small'>optional second pass if the user is still executable</text>
+
+  <polygon points='1000,4790 1280,4950 1000,5110 720,4950' class='box decision' />
+  <text x='1000' y='4930' text-anchor='middle' class='label'>Does the user still need</text>
+  <text x='1000' y='4966' text-anchor='middle' class='small'>monitoring after execution?</text>
+
+  <rect x='220' y='5260' width='900' height='100' rx='50' class='box startend' />
+  <text x='670' y='5321' text-anchor='middle' class='label'>Return to fast list and recheck queues</text>
+
+  <rect x='1300' y='5260' width='480' height='100' rx='50' class='box startend' />
+  <text x='1540' y='5321' text-anchor='middle' class='label'>Finish this cycle</text>
+
+  <path d='M 1000 210 L 1000 260' class='arrow' />
+  <path d='M 1000 380 L 1000 440' class='arrow' />
+  <path d='M 1000 550 L 1000 620' class='arrow' />
+
+  <path d='M 710 770 L 470 770 L 470 1010' class='thin' />
+  <text x='515' y='736' class='tag'>No / Full</text>
+
+  <path d='M 1290 770 L 1530 770 L 1530 1010' class='thin' />
+  <text x='1340' y='736' class='tag'>Yes / Backup</text>
+
+  <path d='M 470 1120 L 470 1170' class='arrow' />
+  <path d='M 470 1290 L 470 1340' class='arrow' />
+  <path d='M 1530 1120 L 1530 1170' class='arrow' />
+  <path d='M 1530 1290 L 1530 1340' class='arrow' />
+
+  <path d='M 470 1450 L 470 1480 L 1000 1480 L 1000 1510' class='thin' />
+  <path d='M 1530 1450 L 1530 1480 L 1000 1480 L 1000 1510' class='thin' />
+
+  <path d='M 1000 1630 L 1000 1690' class='arrow' />
+
+  <path d='M 450 1750 L 230 1750 L 230 1900' class='thin' />
+  <text x='246' y='1718' class='tag'>Coverage loop</text>
+
+  <path d='M 1000 1810 L 1000 1900' class='arrow' />
+  <path d='M 230 2010 L 230 2060' class='arrow' />
+  <path d='M 400 2135 L 420 2135 L 420 1965 L 450 1965' class='thin' />
+  <text x='298' y='2102' class='tag'>delta refresh</text>
+
+  <path d='M 1000 2030 L 1000 2080' class='arrow' />
+  <path d='M 1000 2190 L 1000 2240' class='arrow' />
+  <path d='M 1000 2370 L 1000 2570' class='arrow' />
+
+  <path d='M 720 2730 L 360 2730 L 360 1965 L 450 1965' class='thin' />
+  <text x='382' y='2696' class='tag'>Recover or cool down</text>
+
+  <path d='M 1280 2730 L 1620 2730 L 1620 2305 L 1550 2305' class='thin' />
+  <text x='1480' y='2696' class='tag'>Stay hot</text>
+
+  <path d='M 1000 2890 L 1000 2990' class='arrow' />
+  <text x='1030' y='2946' class='tag'>Execute now</text>
+
+  <path d='M 1000 3100 L 1000 3150' class='arrow' />
+  <path d='M 1000 3260 L 1000 3310' class='arrow' />
+  <path d='M 1000 3450 L 1000 3510' class='arrow' />
+
+  <path d='M 720 3670 L 180 3670 L 180 5310 L 220 5310' class='thin' />
+  <text x='206' y='3636' class='tag'>No, skip and monitor</text>
+
+  <path d='M 1000 3830 L 1000 3890' class='arrow' />
+  <path d='M 1000 4010 L 1000 4050' class='arrow' />
+
+  <path d='M 720 4210 L 490 4210 L 490 4440' class='thin' />
+  <text x='402' y='4176' class='tag'>Single</text>
+
+  <path d='M 1280 4210 L 1510 4210 L 1510 4440' class='thin' />
+  <text x='1376' y='4176' class='tag'>Cascade</text>
+
+  <path d='M 490 4560 L 490 4590 L 1000 4590 L 1000 4620' class='thin' />
+  <path d='M 1510 4560 L 1510 4590 L 1000 4590 L 1000 4620' class='thin' />
+
+  <path d='M 1000 4730 L 1000 4790' class='arrow' />
+
+  <path d='M 720 4950 L 450 4950 L 450 5310 L 220 5310' class='thin' />
+  <text x='476' y='4916' class='tag'>Yes</text>
+
+  <path d='M 1280 4950 L 1540 4950 L 1540 5260' class='thin' />
+  <text x='1310' y='4916' class='tag'>No</text>
+
+  <path d='M 670 5260 L 40 5260 L 40 1965 L 450 1965' class='thin' />
+  <text x='74' y='5218' class='tag'>monitor again</text>
+</svg>
